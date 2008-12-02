@@ -1,0 +1,82 @@
+r, form.cleaned_data['filename'])
+		tmpdir = os.path.join(UPLOAD_TMPDIR, str(id))
+
+		os.mkdir(dir)
+		os.mkdir(tmpdir)
+
+		data = {
+			'size': form.cleaned_data['size'],
+			'sha1sum': form.cleaned_data['sha1sum'],
+			'filename': form.cleaned_data['filename'],
+			'dir': dir,
+			'file': file,
+			'tmpdir': tmpfile,
+			'uploaded': 0,
+		}
+
+		db['data'][id] = data
+
+		response = HttpResponse("request ok. id=%d" % id)
+		response['Content-Location'] = '/upload/%d/' % id
+
+		return response
+
+	else:
+
+		return HttpResponse("invalid request")
+
+def upload_chunk(request, id):
+	global db
+
+	data = db['data'].get(id, None)
+	if data:
+		
+		form = UploadHandlerForm(request.POST, request.FILES)
+		if form.is_valid():
+			info = save_file(data, request.FILES['data'])
+
+			offset = form.cleaned_data['offset']
+			length = form.cleaned_data['length']
+			sha1sum = form.cleaned_data['sha1sum']
+
+			if length == info['size'] and sha1sum == info['sha1sum'] and data['uploaded'] == offset:
+				append_file(data, info)
+
+				return HttpResponse("OK")
+
+			else:
+				return HttpResponse("invalid chunk")
+
+		else:
+			return HttpResponse("invalid form")
+	
+	else:
+		return HttpResponse("invalid id")
+
+def save_file(data, file):
+	fname = os.path.join(data['tmpdir'], "tmp")
+	f = open(fname, "w")
+
+	for chunk in file.chunks():
+		f.write(chunk)
+	
+	f.close()
+
+	info = {}
+	info['file'] = fname
+	info['size'] = os.path.getsize(fname)
+	info['sha1sum'] = hashlib.sha1(open(fname, 'rb').read()).hexdigest()
+
+	return info
+
+def append_file(data, info):
+	fd = open(data['file'], "w+")
+	fc = open(info['file'], "r")
+
+	fd.write(fc.read())
+
+	fc.close()
+	fd.close()
+
+	data['uploaded'] += info['length']
+

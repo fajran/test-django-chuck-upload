@@ -1,0 +1,85 @@
+Make sure to use a
+# trailing slash.
+# Examples: "http://foo.com/media/", "/media/".
+ADMIN_MEDIA_PREFIX = '/media/'
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = 't1!8au$#zt8gote@9v__!&g&53s&3dln(8izoybutf$d^8l%jx'
+
+# List of callables that know how to import templates from various sources.
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.load_template_source',
+    'django.template.loaders.app_directories.load_template_source',
+#     'django.template.loaders.eggs.load_template_source',
+)
+
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+)
+
+ROOT_URLCONF = 'upload.urls'
+
+TEMPLATE_DIRS = (
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
+
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+)
+from django.conf.urls.defaults import *
+
+# Uncomment the next two lines to enable the admin:
+# from django.contrib import admin
+# admin.autodiscover()
+
+urlpatterns = patterns('',
+    (r'^upload/', 'upload.handler.upload_request'),
+    (r'^upload/(\d+)/', 'upload.handler.upload_chunk'),
+
+    # Uncomment the admin/doc line below and add 'django.contrib.admindocs' 
+    # to INSTALLED_APPS to enable admin documentation:
+    # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
+
+    # Uncomment the next line to enable the admin:
+    # (r'^admin/(.*)', admin.site.root),
+)
+from django.http import HttpResponse
+from django import forms
+
+import hashlib
+
+from upload.settings import UPLOAD_DIR, UPLOAD_TMPDIR
+import os
+
+db = {
+	'next_id': 0,
+	'data': {}
+}
+
+class UploadRequestForm(forms.Form):
+	filename = forms.CharField()
+	size = forms.IntegerField()
+	sha1sum = forms.CharField()
+
+class UploadHandlerForm(forms.Form):
+	offset = forms.IntegerField()
+	length = forms.IntegerField()
+	data = forms.FileField()
+
+def upload_request(request):
+	global db
+
+	form = UploadRequestForm(request.POST)
+	if form.is_valid():
+		id = db['next_id']
+		db['next_id'] += 1
+
+		dir = os.path.join(UPLOAD_DIR, str(id))
+		file = os.path.join(di
