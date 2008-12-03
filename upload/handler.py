@@ -51,14 +51,15 @@ def upload_request(request):
 
 		db['data'][id] = data
 
-		response = HttpResponse("request ok. id=%d" % id)
+		response = HttpResponse("request ok. id=%d" % id, status=201)
 		response['Content-Location'] = '/upload/%d/' % id
+		response.
 
 		return response
 
 	else:
 
-		return HttpResponse("invalid request")
+		return HttpResponse("invalid request", status=400)
 
 def upload_chunk(request, id):
 	global db
@@ -84,26 +85,26 @@ def upload_chunk(request, id):
 				if data['uploaded'] == data['size']:
 					sha1sum = hashlib.sha1(open(data['file'], 'rb').read()).hexdigest()
 					if sha1sum == data['sha1sum']:
-						return HttpResponse("upload complete. checksum match")
+						return HttpResponse("upload complete. checksum match", status=200)
 					else:
-						return HttpResponse("upload complete. checksum mismatch")
+						return HttpResponse("upload complete. checksum mismatch", status=409)
 
 				else:
-					return HttpResponse("OK")
+					return HttpResponse("OK", status=202)
 
 			else:
 				if length != info['size']:
-					return HttpResponse("invalid chunk: size mismatch")
+					return HttpResponse("invalid chunk: size mismatch", status=409)
 				elif sha1sum != info['sha1sum']:
-					return HttpResponse("invalid chunk: checksum mismatch")
+					return HttpResponse("invalid chunk: checksum mismatch", status=409)
 				else:
-					return HttpResponse("invalid chunk: unexpected offset")
+					return HttpResponse("invalid chunk: unexpected offset", status=409)
 
 		else:
-			return HttpResponse("invalid form")
+			return HttpResponse("invalid form", status=400)
 	
 	else:
-		return HttpResponse("invalid id")
+		return HttpResponse("invalid id", status=404)
 
 def save_file(data, file):
 	fname = os.path.join(data['tmpdir'], "tmp")
